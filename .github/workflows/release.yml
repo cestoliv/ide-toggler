@@ -29,17 +29,22 @@ jobs:
           mv metadata.tmp metadata.json
           echo "version-name set to $VERSION"
 
-      # Packages the extension into ide-toggler@cestoliv.com.shell-extension.zip
-      # (metadata.json at the zip root) AND uploads it to extensions.gnome.org.
-      # Pinned to the 0.1.1 commit SHA for supply-chain safety.
-      - name: Package + upload to extensions.gnome.org
-        uses: murar8/gnome-extensions-action@1e6014212e6f79c8c6cdd6193025a158273b3293 # 0.1.1
-        with:
-          source-dir: linux/gnome-extension/ide-toggler@cestoliv.com
-          output-dir: dist
-          username: ${{ secrets.EGO_USERNAME }}
-          password: ${{ secrets.EGO_PASSWORD }}
-          accept-tos: true
+      # Plain zip with metadata.json at the root is exactly what `gnome-extensions
+      # pack` produces for an extension with no schemas/po — and what EGO requires.
+      - name: Package extension
+        run: |
+          UUID="ide-toggler@cestoliv.com"
+          mkdir -p dist
+          ( cd "linux/gnome-extension/$UUID" && zip -qr "$GITHUB_WORKSPACE/dist/$UUID.shell-extension.zip" . )
+          unzip -l "dist/$UUID.shell-extension.zip"
+
+      # Uploads via EGO's official REST API with Knox token auth (stdlib only).
+      # Skips gracefully if EGO_USERNAME / EGO_PASSWORD are not configured.
+      - name: Upload to extensions.gnome.org
+        env:
+          EGO_USERNAME: ${{ secrets.EGO_USERNAME }}
+          EGO_PASSWORD: ${{ secrets.EGO_PASSWORD }}
+        run: python3 linux/scripts/upload-to-ego.py "dist/ide-toggler@cestoliv.com.shell-extension.zip"
 
       - name: Attach zip to the GitHub Release
         uses: softprops/action-gh-release@v3
