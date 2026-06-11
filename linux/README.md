@@ -64,7 +64,7 @@ Inspect logs with `journalctl -f -o cat /usr/bin/gnome-shell` and filter for
 
 ## Releasing (maintainers)
 
-Publishing is fully automated by [`.github/workflows/release.yml`](../.github/workflows/release.yml).
+The GitHub Release is automated by [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 Don't edit the version by hand — just push a `v*` tag:
 
 ```bash
@@ -73,15 +73,19 @@ git push origin v1.2.0
 ```
 
 CI then runs the test suite, injects the tag into `metadata.json` as `version-name`,
-packages `ide-toggler@cestoliv.com.shell-extension.zip`, attaches it to a GitHub
-Release, and uploads it to extensions.gnome.org.
+packages `ide-toggler@cestoliv.com.shell-extension.zip`, and attaches it to a GitHub
+Release.
 
-Two one-time prerequisites for the EGO upload (already configured if releases work):
+### Publishing to extensions.gnome.org (manual)
 
-- An [extensions.gnome.org](https://extensions.gnome.org/) account.
-- Repo secrets `EGO_USERNAME` and `EGO_PASSWORD`
-  (Settings → Secrets and variables → Actions).
+EGO has no reliable automated upload path — both the official `gnome-extensions upload`
+CLI and the undocumented web API are currently unstable — and every submission goes
+through manual human review regardless. So the EGO step is done by hand, once per
+release:
 
-> **EGO has manual review.** The upload succeeds immediately, but the public listing
-> goes live only after a human reviewer approves it (can take days to weeks). The
-> GitHub Release install path is instant and unaffected.
+1. Download the `ide-toggler@cestoliv.com.shell-extension.zip` produced by the release
+   (from the GitHub Release assets).
+2. Upload it at [extensions.gnome.org/upload/](https://extensions.gnome.org/upload/)
+   (the first upload also creates the listing — add the description/screenshots there).
+3. Wait for a reviewer to approve it; the public listing goes live only after review
+   (can take days to weeks). The GitHub Release install path is instant and unaffected.
