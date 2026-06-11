@@ -14,7 +14,7 @@ jobs:
         working-directory: macos
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Print Swift version
         run: swift --version
@@ -32,11 +32,11 @@ jobs:
         working-directory: linux
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Print Node version
         run: node --version
