@@ -1,0 +1,48 @@
+name: Release GNOME extension
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the GitHub Release and upload the asset
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Test (pure extension logic — guard before publishing)
+        working-directory: linux
+        run: node --test
+
+      - name: Inject version-name from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}" # v1.2.0 -> 1.2.0
+          cd "linux/gnome-extension/ide-toggler@cestoliv.com"
+          jq --arg v "$VERSION" '. + {"version-name": $v}' metadata.json > metadata.tmp
+          mv metadata.tmp metadata.json
+          echo "version-name set to $VERSION"
+
+      # Packages the extension into ide-toggler@cestoliv.com.shell-extension.zip
+      # (metadata.json at the zip root) AND uploads it to extensions.gnome.org.
+      # Pinned to the 0.1.1 commit SHA for supply-chain safety.
+      - name: Package + upload to extensions.gnome.org
+        uses: murar8/gnome-extensions-action@1e6014212e6f79c8c6cdd6193025a158273b3293 # 0.1.1
+        with:
+          source-dir: linux/gnome-extension/ide-toggler@cestoliv.com
+          output-dir: dist
+          username: ${{ secrets.EGO_USERNAME }}
+          password: ${{ secrets.EGO_PASSWORD }}
+          accept-tos: true
+
+      - name: Attach zip to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.shell-extension.zip
+          generate_release_notes: true
