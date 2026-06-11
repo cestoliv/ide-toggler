@@ -24,10 +24,13 @@ jobs:
       - name: Inject version-name from tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}" # v1.2.0 -> 1.2.0
+          # EGO only allows alphanumerics, spaces and dots in version-name,
+          # so map anything else (e.g. the hyphen in 1.0.0-rc1) to a dot.
+          VERSION_NAME="$(printf '%s' "$VERSION" | sed 's/[^A-Za-z0-9. ]/./g')"
           cd "linux/gnome-extension/ide-toggler@cestoliv.com"
-          jq --arg v "$VERSION" '. + {"version-name": $v}' metadata.json > metadata.tmp
+          jq --arg v "$VERSION_NAME" '. + {"version-name": $v}' metadata.json > metadata.tmp
           mv metadata.tmp metadata.json
-          echo "version-name set to $VERSION"
+          echo "version-name set to $VERSION_NAME"
 
       # Plain zip with metadata.json at the root is exactly what `gnome-extensions
       # pack` produces for an extension with no schemas/po — and what EGO requires.
