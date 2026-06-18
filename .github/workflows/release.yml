@@ -17,6 +17,10 @@ jobs:
         with:
           node-version: "20"
 
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Test (pure extension logic — guard before publishing)
         working-directory: linux
         run: node --test
@@ -38,6 +42,22 @@ jobs:
           mkdir -p dist
           ( cd "linux/gnome-extension/$UUID" && zip -qr "$GITHUB_WORKSPACE/dist/$UUID.shell-extension.zip" . )
           unzip -l "dist/$UUID.shell-extension.zip"
+
+      # Run the EGO review checks against the packaged contents before publishing.
+      # shexli always exits 0, so gate on error-severity findings; warnings stay advisory.
+      - name: Static analysis (shexli)
+        run: |
+          python3 -m pip install -q shexli
+          # shexli needs an absolute path (it crashes on a relative one).
+          EXT="$GITHUB_WORKSPACE/linux/gnome-extension/ide-toggler@cestoliv.com"
+          shexli --format text "$EXT"
+          shexli --format json "$EXT" > shexli-report.json
+          errors=$(jq '.summary.severity_counts.error // 0' shexli-report.json)
+          echo "shexli error-level findings: $errors"
+          if [ "$errors" -gt 0 ]; then
+            echo "::error::shexli reported $errors error-level finding(s) — see output above"
+            exit 1
+          fi
 
       - name: Attach zip to the GitHub Release
         uses: softprops/action-gh-release@v3
