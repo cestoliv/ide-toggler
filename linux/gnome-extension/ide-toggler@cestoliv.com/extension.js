@@ -498,11 +498,22 @@ export default class IdeTogglerExtension extends Extension {
       track_hover: true,
       y_align: Clutter.ActorAlign.CENTER,
     });
-    this._handle.connect("button-press-event", (_a, ev) =>
-      this._onHandlePress(ev),
-    );
-    this._handle.connect("motion-event", (_a, ev) => this._onHandleMotion(ev));
-    this._handle.connect("button-release-event", () => this._endHandleDrag());
+    this._signalIds.push([
+      this._handle,
+      this._handle.connect("button-press-event", (_a, ev) =>
+        this._onHandlePress(ev),
+      ),
+    ]);
+    this._signalIds.push([
+      this._handle,
+      this._handle.connect("motion-event", (_a, ev) =>
+        this._onHandleMotion(ev),
+      ),
+    ]);
+    this._signalIds.push([
+      this._handle,
+      this._handle.connect("button-release-event", () => this._endHandleDrag()),
+    ]);
     this._footer.add_child(this._handle);
 
     const spacer = new St.Widget({ x_expand: true });
@@ -518,12 +529,15 @@ export default class IdeTogglerExtension extends Extension {
       }),
       can_focus: true,
     });
-    this._compactBtn.connect("clicked", () => {
-      this._settings.compactMode = !this._settings.compactMode;
-      this._saveSettings();
-      this._updateCompactIcon();
-      this._refreshUi();
-    });
+    this._signalIds.push([
+      this._compactBtn,
+      this._compactBtn.connect("clicked", () => {
+        this._settings.compactMode = !this._settings.compactMode;
+        this._saveSettings();
+        this._updateCompactIcon();
+        this._refreshUi();
+      }),
+    ]);
     this._footer.add_child(this._compactBtn);
 
     this._gearBtn = new St.Button({
@@ -534,7 +548,10 @@ export default class IdeTogglerExtension extends Extension {
       }),
       can_focus: true,
     });
-    this._gearBtn.connect("clicked", () => this._toggleSettingsMenu());
+    this._signalIds.push([
+      this._gearBtn,
+      this._gearBtn.connect("clicked", () => this._toggleSettingsMenu()),
+    ]);
     this._footer.add_child(this._gearBtn);
 
     // Close/hide button (GNOME-only): hides the panel and shows a top-bar
@@ -544,7 +561,10 @@ export default class IdeTogglerExtension extends Extension {
       child: new St.Icon({ icon_name: "window-close-symbolic", icon_size: 16 }),
       can_focus: true,
     });
-    this._closeBtn.connect("clicked", () => this._hidePanel());
+    this._signalIds.push([
+      this._closeBtn,
+      this._closeBtn.connect("clicked", () => this._hidePanel()),
+    ]);
     this._footer.add_child(this._closeBtn);
 
     this._buildSettingsMenu();
@@ -1043,11 +1063,17 @@ export default class IdeTogglerExtension extends Extension {
 
   // ---------------------------------------------------------------------
   disable() {
-    for (const prop of ["_uiDebounceId", "_sessionDebounceId", "_backstopId"]) {
-      if (this[prop]) {
-        GLib.source_remove(this[prop]);
-        this[prop] = 0;
-      }
+    if (this._uiDebounceId) {
+      GLib.source_remove(this._uiDebounceId);
+      this._uiDebounceId = 0;
+    }
+    if (this._sessionDebounceId) {
+      GLib.source_remove(this._sessionDebounceId);
+      this._sessionDebounceId = 0;
+    }
+    if (this._backstopId) {
+      GLib.source_remove(this._backstopId);
+      this._backstopId = 0;
     }
 
     this._stopIconAnimations();
